@@ -1,106 +1,203 @@
 package src;
 
-import java.awt.EventQueue;
-import java.awt.BorderLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import java.awt.*;
+import java.awt.event.*;
 import java.sql.*;
 
-import javax.swing.JFrame;
-import javax.swing.JComboBox;
-import javax.swing.JScrollPane;
-import javax.swing.JTextArea;
+import javax.swing.*;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 
 public class stavka_kosarice {
 
 	private JFrame frame;
 	private JComboBox<String> comboBox;
 	private JTextArea textArea;
+	private JTextField quantityField;
 
 	/**
-	 * Launch the application.
+	 * Pokretanje aplikacije.
 	 */
 	public static void main(String[] args) {
-		EventQueue.invokeLater(new Runnable() {
-			public void run() {
-				try {
-					stavka_kosarice window = new stavka_kosarice();
-					window.frame.setVisible(true);
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
+		EventQueue.invokeLater(() -> {
+			try {
+				stavka_kosarice window = new stavka_kosarice();
+				window.frame.setVisible(true);
+			} catch (Exception e) {
+				e.printStackTrace();
 			}
 		});
 	}
 
 	/**
-	 * Create the application.
+	 * Konstruktor.
 	 */
 	public stavka_kosarice() {
 		initialize();
-		loadComboBoxData();  // Učitavanje podataka iz baze u JComboBox
+		loadComboBoxData(); // Učitavanje biljaka iz baze
 	}
 
 	/**
-	 * Initialize the contents of the frame.
+	 * Inicijalizacija GUI-ja.
 	 */
 	private void initialize() {
 		frame = new JFrame("Stavka košarice");
-		frame.setBounds(100, 100, 450, 300);
+		frame.setBounds(100, 100, 500, 350);
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frame.getContentPane().setLayout(new BorderLayout());
 
-		// Tekstualno područje
+		Font font = new Font("SansSerif", Font.PLAIN, 16); // Povećani font
+
+		// Gornji panel: izbornik i količina
+		JPanel topPanel = new JPanel();
+
+		comboBox = new JComboBox<>();
+		comboBox.setFont(font);
+		topPanel.add(comboBox);
+
+		quantityField = new JTextField(5);
+		quantityField.setFont(font);
+		topPanel.add(quantityField);
+
+		frame.getContentPane().add(topPanel, BorderLayout.NORTH);
+
+		// Sredina: tekstualno područje
 		textArea = new JTextArea();
+		textArea.setFont(font);
 		JScrollPane scrollPane = new JScrollPane(textArea);
 		frame.getContentPane().add(scrollPane, BorderLayout.CENTER);
-		
-				// Padajući izbornik
-				comboBox = new JComboBox<>();
-				scrollPane.setColumnHeaderView(comboBox);
 
-		// Reakcija na odabir iz padajućeg izbornika
-		comboBox.addActionListener(new ActionListener() {
+		// Donji panel: gumb Spremi
+		JPanel bottomPanel = new JPanel(new BorderLayout());
+		JButton saveButton = new JButton("Spremi");
+		saveButton.setFont(font);
+		bottomPanel.add(saveButton, BorderLayout.EAST);
+		frame.getContentPane().add(bottomPanel, BorderLayout.SOUTH);
+
+		// Event: klik na Spremi
+		saveButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				String selected = (String) comboBox.getSelectedItem();
-				textArea.setText("Odabrano: " + selected);
+				String quantityText = quantityField.getText();
+
+				try {
+					int quantity = Integer.parseInt(quantityText);
+					if (quantity <= 0) {
+						textArea.setText("Količina mora biti veća od 0.");
+						return;
+					}
+					spremiStavkuUBazu(selected, quantity);
+				} catch (NumberFormatException ex) {
+					textArea.setText("Unesite ispravnu brojčanu količinu.");
+				}
+			}
+		});
+
+		// Event: promjena izbora u comboBox-u
+		comboBox.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				updateTextArea();
+			}
+		});
+
+		// Event: unos količine
+		quantityField.getDocument().addDocumentListener(new DocumentListener() {
+			public void insertUpdate(DocumentEvent e) {
+				updateTextArea();
+			}
+			public void removeUpdate(DocumentEvent e) {
+				updateTextArea();
+			}
+			public void changedUpdate(DocumentEvent e) {
+				updateTextArea();
 			}
 		});
 	}
 
 	/**
-	 * Povezivanje s MySQL bazom i punjenje JComboBox-a
+	 * Dohvaćanje biljaka iz baze i punjenje JComboBox-a.
 	 */
 	private void loadComboBoxData() {
-		String url = "jdbc:mysql://ucka.veleri.hr/ppokos"; // zamijeni s imenom tvoje baze
-		String username = "ppokos"; // npr. root
-		String password = "11";        // npr. 1234
+		String url = "jdbc:mysql://ucka.veleri.hr/ppokos";
+		String username = "ppokos";
+		String password = "11";
 
 		try {
-			// Učitaj MySQL driver (ako već nije)
 			Class.forName("com.mysql.cj.jdbc.Driver");
-
-			// Spoji se na bazu
 			Connection conn = DriverManager.getConnection(url, username, password);
-
-			// Izvrši upit za tablicu 'biljka' (zamijeni stupac ako trebaš)
 			String query = "SELECT nazivBiljke FROM Biljka";
 			Statement stmt = conn.createStatement();
 			ResultSet rs = stmt.executeQuery(query);
 
-			// Dodaj podatke u comboBox
 			while (rs.next()) {
 				comboBox.addItem(rs.getString("nazivBiljke"));
 			}
 
-			// Zatvori sve
 			rs.close();
 			stmt.close();
 			conn.close();
+
+			// Prikaz prve stavke automatski
+			updateTextArea();
 
 		} catch (Exception e) {
 			e.printStackTrace();
 			textArea.setText("Greška pri dohvaćanju podataka iz baze.");
 		}
 	}
+
+	/**
+	 * Ažuriranje prikaza u tekstualnom području.
+	 */
+	private void updateTextArea() {
+		String selected = (String) comboBox.getSelectedItem();
+		String quantity = quantityField.getText();
+		textArea.setText("Odabrano: " + selected + "\nKoličina: " + quantity);
+	}
+
+	/**
+	 * Spremanje stavke u bazu.
+	 */
+	private void spremiStavkuUBazu(String nazivBiljke, int kolicina) {
+		String url = "jdbc:mysql://ucka.veleri.hr/ppokos";
+		String username = "ppokos";
+		String password = "11";
+
+		try {
+			Class.forName("com.mysql.cj.jdbc.Driver");
+			Connection conn = DriverManager.getConnection(url, username, password);
+
+			// 1. Dohvati ID biljke na temelju naziva
+			String getIdQuery = "SELECT id_biljke FROM Biljka WHERE nazivBiljke = ?";
+			PreparedStatement getIdStmt = conn.prepareStatement(getIdQuery);
+			getIdStmt.setString(1, nazivBiljke);
+			ResultSet rs = getIdStmt.executeQuery();
+
+			if (rs.next()) {
+				int id_biljke = rs.getInt("id_biljke");
+
+				// 2. Unesi podatke u StavkaNarudzbe
+				String insertQuery = "INSERT INTO StavkaNarudzbe (id_biljke, kolicina) VALUES (?, ?)";
+				PreparedStatement insertStmt = conn.prepareStatement(insertQuery);
+				insertStmt.setInt(1, id_biljke);
+				insertStmt.setInt(2, kolicina);
+				insertStmt.executeUpdate();
+
+				textArea.setText("Stavka spremljena u bazu:\n" + nazivBiljke + " - Količina: " + kolicina);
+
+				insertStmt.close();
+			} else {
+				textArea.setText("Greška: Nije pronađen ID za biljku: " + nazivBiljke);
+			}
+
+			rs.close();
+			getIdStmt.close();
+			conn.close();
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			textArea.setText("Greška pri spremanju u bazu.");
+		}
+	}
 }
+
