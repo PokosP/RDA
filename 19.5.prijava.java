@@ -87,7 +87,7 @@ public class prijava extends JDialog {
                 try {
                     Class.forName("com.mysql.cj.jdbc.Driver").newInstance();
                     Connection conn = DriverManager.getConnection(
-                            "jdbc:mysql://student.veleri.hr/dhaskic?user=dhaskic&password=11");
+                            "jdbc:mysql://student.veleri.hr/ppokos?user=ppokos&password=11");
 
                     PreparedStatement stmt = conn.prepareStatement(
                             "SELECT * FROM korisnik WHERE korisnicko_ime = ? AND lozinka = ?");
@@ -110,7 +110,7 @@ public class prijava extends JDialog {
                             adminPage.setVisible(true);
                         } else {
                             // Ovdje možeš otvoriti korisnički panel ili samo poruku
-                            JOptionPane.showMessageDialog(null, "Prijavljeni ste kao običan korisnik.");
+                            JOptionPane.showMessageDialog(null, "Prijavljeni ste kao korisnik.");
                         }
                     } else {
                         JOptionPane.showMessageDialog(null, "Neispravno korisničko ime ili lozinka.", "Greška", JOptionPane.ERROR_MESSAGE);
