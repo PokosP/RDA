@@ -144,8 +144,8 @@ public class registracija extends JDialog {
 						String zahtjevTekst = JOptionPane.showInputDialog("Unesite razlog zahtjeva:");
 						if (zahtjevTekst != null && !zahtjevTekst.trim().isEmpty()) {
 							PreparedStatement zahtjevStmt = conn.prepareStatement(
-									"INSERT INTO Zahtjevi_za_admina (korisnik_id, zahtjev) VALUES (?, ?)");
-							zahtjevStmt.setInt(1, korisnikId);
+									"INSERT INTO Zahtjevi_za_admina (korisnicko_ime, zahtjev) VALUES (?, ?)");
+							zahtjevStmt.setString(1, korisnicko_ime);
 							zahtjevStmt.setString(2, zahtjevTekst.trim());
 							zahtjevStmt.executeUpdate();
 							zahtjevStmt.close();
